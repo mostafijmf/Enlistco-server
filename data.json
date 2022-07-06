@@ -1,0 +1,70 @@
+[
+    {
+        "firstName": "John",
+        "lastName": "Smith",
+        "email": "john@smith.com",
+        "phone": "+123456789",
+        "resume": "resume.pdf",
+        "country": "United States",
+        "address": "abc100",
+        "state": "Chicago",
+        "zip": "10005",
+        "exJobTitle": "Web Developer",
+        "exCompany": "Web Industry",
+        "exStartDate": "01/01/2019",
+        "exEndDate": "01/01/2021",
+        "exWorking": "Currently Working",
+        "exResponsibilities": "This is my Responsibilities",
+        "degree": "CSE",
+        "institution": "Oxford University",
+        "edugroup": "Science",
+        "eduStartDate": "01/01/2014",
+        "eduEndDate": "01/01/2018",
+        "eduStudying": "Currently studying"
+    },
+    {
+        "firstName": "Harry",
+        "lastName": "Potter",
+        "email": "harry@potter.com",
+        "phone": "+123456789",
+        "resume": "resume.pdf",
+        "country": "United States",
+        "address": "abc100",
+        "state": "Chicago",
+        "zip": "10005",
+        "exJobTitle": "Web Developer",
+        "exCompany": "Web Industry",
+        "exStartDate": "01/01/2019",
+        "exEndDate": "01/01/2021",
+        "exWorking": "Currently Working",
+        "exResponsibilities": "This is my Responsibilities",
+        "degree": "CSE",
+        "institution": "Oxford University",
+        "edugroup": "Science",
+        "eduStartDate": "01/01/2014",
+        "eduEndDate": "01/01/2018",
+        "eduStudying": "Currently studying"
+    }
+]
+
+[
+    {
+        "firstName": "John",
+        "lastName": "Smith",
+        "email": "john@smith.com",
+        "phone": "+123456789",
+        "resume": "resume.pdf",
+        "country": "United States",
+        "address": "abc100",
+        "state": "Chicago",
+        "zip": "10005",
+
+        "jobTitle": "Web Developer",
+        "company": "Web Industry",
+        "publishDate": "01/01/2019",
+        "location": "New York, USA",
+        "salary": "2500 a year",
+        "jobType": "Full-time , Internship",
+        "description": "Oxford University",
+    }
+]
