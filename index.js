@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const app = express();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -9,23 +10,57 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+
+
 // -------MongoDB------
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3acffrh.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+
+
+// -------Verify JWT------
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).send({ message: 'UnAuthorized access' });
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+      if (err) {
+        return res.status(403).send({ message: 'Forbidden access' })
+      }
+      req.decoded = decoded;
+      next();
+    });
+  }
+
+
 
 async function run() {
     try {
         await client.connect();
         const usersCollection = client.db("JobPortal").collection("usersData");
+        const seekersCollection = client.db("JobPortal").collection("seekersData");
+        const employersCollection = client.db("JobPortal").collection("jobPost");
 
-        // User Data 
+        // Users
         app.post('/users', async (req, res) => {
             const user = req.body;
+            const email = user.email;
             const result = await usersCollection.insertOne(user);
-            res.send(result);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '7d' })
+            res.send({ result, token });
         });
 
-        app.patch('/users/:email', async (req, res) => {
+        app.get('/users', async (req, res) => {
+            const query = {};
+            const cursor = usersCollection.find(query);
+            const allUser = await cursor.toArray();
+            res.send(allUser);
+        });
+
+        // ---------Seekers Data--------- 
+        app.put('/seeker/:email', async (req, res) => {
             const email = req.params.email;
             const user = req.body;
             const uc = user.userContact;
@@ -57,23 +92,61 @@ async function run() {
                     eduStudying: ue.eduStudying,
                 }
             };
-            const update = await usersCollection.updateOne(filter, updateDoc, options);
+            const update = await seekersCollection.updateOne(filter, updateDoc, options);
             res.send(update);
         });
 
-        app.get('/users', async (req, res) => {
-            const query = {};
-            const cursor = usersCollection.find(query);
-            const allUser = await cursor.toArray();
-            res.send(allUser)
-        });
-
-        app.get('/users/:email', async (req, res) => {
+        app.get('/seeker/:email', async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
-            const cursor = usersCollection.find(query);
+            const cursor = seekersCollection.find(query);
             const userInfo = await cursor.toArray();
             res.send(userInfo);
+        });
+
+        // ---------Employer job post--------- 
+        app.post('/post', async (req, res) => {
+            const user = req.body;
+            const po = user.postOptions;
+            const ec = user.employerContact;
+            const jobData = {
+                jobTitle: ec.jobTitle,
+                company: ec.company,
+                workplace: ec.workplace,
+                jobLocation: ec.jobLocation,
+                empQuantity: ec.empQuantity,
+                empType: ec.empType,
+                jobDescription: user.jobDescription,
+                employerEmail: user.email,
+                receiveEmail: po.receiveEmail,
+                salary: po.salary,
+                skillTags: po.skillTags,
+            };
+            const result = await employersCollection.insertOne(jobData);
+            res.send(result);
+        });
+
+        // Get post
+        app.get('/post', async (req, res) => {
+            const query = {};
+            const cursor = employersCollection.find(query);
+            const allPost = await cursor.toArray();
+            res.send(allPost);
+        });
+
+        app.get('/post/:email', verifyJWT, async (req, res)=>{
+            const email = req.params.email;
+            const query = { employerEmail: email };
+            const cursor = employersCollection.find(query);
+            const post = await cursor.toArray();
+            res.send(post);
+        });
+
+        app.delete('/post/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await employersCollection.deleteOne(query);
+            res.send(result)
         });
     }
     finally { }
