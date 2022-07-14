@@ -22,17 +22,17 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).send({ message: 'UnAuthorized access' });
+        return res.status(401).send({ message: 'UnAuthorized access' });
     }
     const token = authHeader.split(' ')[1];
     jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
-      if (err) {
-        return res.status(403).send({ message: 'Forbidden access' })
-      }
-      req.decoded = decoded;
-      next();
+        if (err) {
+            return res.status(403).send({ message: 'Forbidden access' })
+        }
+        req.decoded = decoded;
+        next();
     });
-  }
+}
 
 
 
@@ -40,16 +40,20 @@ async function run() {
     try {
         await client.connect();
         const usersCollection = client.db("JobPortal").collection("usersData");
-        const seekersCollection = client.db("JobPortal").collection("seekersData");
         const employersCollection = client.db("JobPortal").collection("jobPost");
 
         // Users
-        app.post('/users', async (req, res) => {
+        app.put('/users/:email', async (req, res) => {
             const user = req.body;
-            const email = user.email;
-            const result = await usersCollection.insertOne(user);
+            const email = req.params.email;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+              };
+            const update = await usersCollection.updateOne(filter, updateDoc, options);
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '7d' })
-            res.send({ result, token });
+            res.send({ update, token });
         });
 
         app.get('/users', async (req, res) => {
@@ -58,6 +62,28 @@ async function run() {
             const allUser = await cursor.toArray();
             res.send(allUser);
         });
+
+        app.get('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const cursor = usersCollection.find(query);
+            const userInfo = await cursor.toArray();
+            res.send(userInfo);
+        });
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
+            res.send(result)
+        });
+
+        // ---------Admin data--------- 
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await usersCollection.findOne({ email: email });
+            const isAdmin = user?.admin === true;
+            res.send({ admin: isAdmin })
+          })
 
         // ---------Seekers Data--------- 
         app.put('/seeker/:email', async (req, res) => {
@@ -92,16 +118,8 @@ async function run() {
                     eduStudying: ue.eduStudying,
                 }
             };
-            const update = await seekersCollection.updateOne(filter, updateDoc, options);
+            const update = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(update);
-        });
-
-        app.get('/seeker/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { email: email };
-            const cursor = seekersCollection.find(query);
-            const userInfo = await cursor.toArray();
-            res.send(userInfo);
         });
 
         // ---------Employer job post--------- 
@@ -134,7 +152,7 @@ async function run() {
             res.send(allPost);
         });
 
-        app.get('/post/:email', verifyJWT, async (req, res)=>{
+        app.get('/post/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
             const query = { employerEmail: email };
             const cursor = employersCollection.find(query);
@@ -142,6 +160,18 @@ async function run() {
             res.send(post);
         });
 
+        app.put('/post/:id', async (req, res) => {
+            const id = req.params.id;
+            const user = req.body;
+            const options = { upsert: true };
+            const query = { _id: ObjectId(id) };
+            const updateDoc = {
+                $set: user
+            };
+            const update = await employersCollection.updateOne(query, updateDoc, options);
+            console.log(update)
+            res.send(update)
+        });
         app.delete('/post/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
