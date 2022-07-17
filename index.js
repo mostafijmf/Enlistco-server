@@ -52,7 +52,7 @@ async function run() {
                 $set: user,
               };
             const update = await usersCollection.updateOne(filter, updateDoc, options);
-            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '7d' })
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1y' })
             res.send({ update, token });
         });
 
@@ -85,37 +85,38 @@ async function run() {
             res.send({ admin: isAdmin })
           })
 
+
         // ---------Seekers Data--------- 
         app.put('/seeker/:email', async (req, res) => {
             const email = req.params.email;
             const user = req.body;
-            const uc = user.userContact;
-            const uj = user.jobExp;
+            const uc = user.userContact ? user.userContact : '';
+            const uj = user.jobExp ? user.jobExp : '';
             const ue = user.education;
             const filter = { email: email };
             const options = { upsert: true };
             const updateDoc = {
                 $set: {
-                    firstName: uc.firstName,
-                    lastName: uc.lastName,
-                    phone: uc.phone,
-                    resume: uc.resume,
-                    country: uc.country,
-                    address: uc.address,
-                    state: uc.state,
-                    zip: uc.zip,
-                    exJobTitle: uj.exJobTitle,
-                    exCompany: uj.exCompany,
-                    exStartDate: uj.exStartDate,
-                    exEndDate: uj.exEndDate,
-                    exWorking: uj.exWorking,
-                    exResponsibilities: uj.exResponsibilities,
+                    firstName: uc.firstName ? uc.firstName : '',
+                    lastName: uc.lastName ? uc.lastName : '',
+                    phone: uc.phone ? uc.phone : '',
+                    country: uc.country ? uc.country : '',
+                    address: uc.address ? uc.address : '',
+                    state: uc.state ? uc.state : '',
+                    zip: uc.zip ? uc.zip : '',
+                    exJobTitle: uj.exJobTitle ? uj.exJobTitle : '',
+                    exCompany: uj.exCompany ? uj.exCompany : '',
+                    exStartDate: uj.exStartDate ? uj.exStartDate : '',
+                    exEndDate: uj.exEndDate ? uj.exEndDate : '',
+                    exWorking: uj.exWorking ? uj.exWorking : '',
+                    exResponsibilities: uj.exResponsibilities ? uj.exResponsibilities : '',
                     degree: ue.degree,
                     institution: ue.institution,
                     edugroup: ue.edugroup,
                     eduStartDate: ue.eduStartDate,
                     eduEndDate: ue.eduEndDate,
                     eduStudying: ue.eduStudying,
+                    resume: ue.resume
                 }
             };
             const update = await usersCollection.updateOne(filter, updateDoc, options);
@@ -152,7 +153,7 @@ async function run() {
             res.send(allPost);
         });
 
-        app.get('/post/:email', verifyJWT, async (req, res) => {
+        app.get('/post/:email', async (req, res) => {
             const email = req.params.email;
             const query = { employerEmail: email };
             const cursor = employersCollection.find(query);
@@ -185,8 +186,8 @@ run().catch(console.dir);
 
 
 // server test
-app.get('/', (req, res) => {
-    res.send('hello')
-});
+// app.get('/', (req, res) => {
+//     res.send('hello')
+// });
 
 app.listen(port, () => { })
