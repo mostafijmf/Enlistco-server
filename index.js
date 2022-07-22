@@ -5,6 +5,9 @@ const app = express();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
+const nodemailer = require('nodemailer');
+const mg = require('nodemailer-mailgun-transport');
+
 
 // Middleware 
 app.use(cors());
@@ -32,8 +35,16 @@ function verifyJWT(req, res, next) {
         req.decoded = decoded;
         next();
     });
-}
+};
 
+// -----------Email sender-----------
+const auth = {
+    auth: {
+        api_key: '88ab8c8d96a1ebd88315e4587d2806d1-787e6567-d5a0e114',
+        domain: 'sandbox7d656ef61d664d06846c8cb6c6e39027.mailgun.org'
+    }
+}
+const nodemailerMailgun = nodemailer.createTransport(mg(auth));
 
 
 async function run() {
@@ -41,6 +52,7 @@ async function run() {
         await client.connect();
         const usersCollection = client.db("JobPortal").collection("usersData");
         const employersCollection = client.db("JobPortal").collection("jobPost");
+        const applyCollection = client.db("JobPortal").collection("applyJob");
 
         // Users
         app.put('/users/:email', async (req, res) => {
@@ -50,10 +62,30 @@ async function run() {
             const options = { upsert: true };
             const updateDoc = {
                 $set: user,
-              };
+            };
             const update = await usersCollection.updateOne(filter, updateDoc, options);
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1y' })
             res.send({ update, token });
+        });
+
+        // update seeker personal data
+        app.patch('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const user = req.body;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    phone: user.phone,
+                    address: user.address,
+                    state: user.state,
+                    country: user.country,
+                    zip: user.zip
+                }
+            };
+            console.log(user, id);
+            const update = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(update);
         });
 
         app.get('/users', async (req, res) => {
@@ -70,6 +102,7 @@ async function run() {
             const userInfo = await cursor.toArray();
             res.send(userInfo);
         });
+
         app.delete('/users/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
@@ -83,7 +116,7 @@ async function run() {
             const user = await usersCollection.findOne({ email: email });
             const isAdmin = user?.admin === true;
             res.send({ admin: isAdmin })
-          })
+        })
 
 
         // ---------Seekers Data--------- 
@@ -178,6 +211,36 @@ async function run() {
             const query = { _id: ObjectId(id) };
             const result = await employersCollection.deleteOne(query);
             res.send(result)
+        });
+
+        // ---------Seeker apply job--------- 
+        app.post('/apply', async (req, res) => {
+            const user = req.body;
+            // console.log(user)
+            // nodemailerMailgun.sendMail({
+            //     from: 'myemail@example.com',
+            //     to: 'mostafijmozumdar@gmail.com',
+            //     subject: 'Hey you, awesome!',
+            //     // html: '<b>Wow Big powerful letters</b>',
+            //     text: 'Mailgun rocks, pow pow!'
+            //   }, (err, info) => {
+            //     if (err) {
+            //       console.log(err);
+            //     }
+            //     else {
+            //       console.log(info);
+            //     }
+            //   });
+            const result = await applyCollection.insertOne(user);
+            res.send(result);
+        });
+
+        app.get('/apply/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { seekerEmail: email };
+            const cursor = applyCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
         });
     }
     finally { }
