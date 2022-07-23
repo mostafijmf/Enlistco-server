@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const nodemailer = require('nodemailer');
-const mg = require('nodemailer-mailgun-transport');
 
 
 // Middleware 
@@ -38,13 +37,32 @@ function verifyJWT(req, res, next) {
 };
 
 // -----------Email sender-----------
-const auth = {
-    auth: {
-        api_key: '88ab8c8d96a1ebd88315e4587d2806d1-787e6567-d5a0e114',
-        domain: 'sandbox7d656ef61d664d06846c8cb6c6e39027.mailgun.org'
-    }
-}
-const nodemailerMailgun = nodemailer.createTransport(mg(auth));
+function emailSender(user) {
+    const { resume, subject, coverLetter, seekerEmail, seekerName, postID, receiveEmail, jobTitle } = user;
+
+    const smtpTransport = nodemailer.createTransport({
+        host: "mail.smtp2go.com",
+        port: 2525, // 8025, 587 and 25 can also be used.
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+        }
+    });
+    smtpTransport.sendMail({
+        from: process.env.SENDER_EMAIL,
+        to: receiveEmail,
+        subject: subject,
+        html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Job Portal</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://job-portal-online.web.app/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
+    }, function (error, response) {
+        if (error) {
+            console.log(error);
+        } else {
+            console.log("Message sent: " + response.message);
+        }
+    });
+
+};
+
 
 
 async function run() {
@@ -216,22 +234,8 @@ async function run() {
         // ---------Seeker apply job--------- 
         app.post('/apply', async (req, res) => {
             const user = req.body;
-            // console.log(user)
-            // nodemailerMailgun.sendMail({
-            //     from: 'myemail@example.com',
-            //     to: 'mostafijmozumdar@gmail.com',
-            //     subject: 'Hey you, awesome!',
-            //     // html: '<b>Wow Big powerful letters</b>',
-            //     text: 'Mailgun rocks, pow pow!'
-            //   }, (err, info) => {
-            //     if (err) {
-            //       console.log(err);
-            //     }
-            //     else {
-            //       console.log(info);
-            //     }
-            //   });
             const result = await applyCollection.insertOne(user);
+            emailSender(user)
             res.send(result);
         });
 
@@ -242,8 +246,14 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         });
+        app.get('/apply', async (req, res) => {
+            const query = {};
+            const cursor = applyCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        });
     }
-    finally { }
+    finally {}
 };
 run().catch(console.dir);
 
