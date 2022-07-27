@@ -53,13 +53,7 @@ function emailSender(user) {
         to: receiveEmail,
         subject: subject,
         html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Job Portal</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://job-portal-online.web.app/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
-    }, function (error, response) {
-        if (error) {
-            console.log(error);
-        } else {
-            console.log("Message sent: " + response.message);
-        }
-    });
+    }, function (error, response) {});
 
 };
 
@@ -101,9 +95,62 @@ async function run() {
                     zip: user.zip
                 }
             };
-            console.log(user, id);
             const update = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(update);
+        });
+
+        // Add seeker new education data
+        app.put('/add-edu/:id', async (req, res) => {
+            const id = req.params.id;
+            const education = req.body;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = { 
+                $push: { education: education } 
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        });
+        
+        // Delete seeker education data
+        app.patch('/delete-edu/:id', async (req, res) => {
+            const id = req.params.id;
+            const edu = req.body;
+            const education = edu.edu;
+            const filter = { _id: ObjectId(id) };
+            const options = { multi: true };
+            const updateDoc = { 
+                $pull: { education: education } 
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        });
+
+        // Add seeker new Job experience data
+        app.put('/add-jobexp/:id', async (req, res) => {
+            const id = req.params.id;
+            const jobExperience = req.body;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = { 
+                $push: { jobExperience: jobExperience } 
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        });
+
+        // Delete seeker Job experience data
+        app.patch('/delete-jobexp/:id', async (req, res) => {
+            const id = req.params.id;
+            const ex = req.body;
+            const jobExperience = ex.ex;
+            const filter = { _id: ObjectId(id) };
+            const options = { multi: true };
+            const updateDoc = { 
+                $pull: { jobExperience: jobExperience } 
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
         });
 
         app.get('/users', async (req, res) => {
@@ -155,18 +202,22 @@ async function run() {
                     address: uc.address ? uc.address : '',
                     state: uc.state ? uc.state : '',
                     zip: uc.zip ? uc.zip : '',
-                    exJobTitle: uj.exJobTitle ? uj.exJobTitle : '',
-                    exCompany: uj.exCompany ? uj.exCompany : '',
-                    exStartDate: uj.exStartDate ? uj.exStartDate : '',
-                    exEndDate: uj.exEndDate ? uj.exEndDate : '',
-                    exWorking: uj.exWorking ? uj.exWorking : '',
-                    exResponsibilities: uj.exResponsibilities ? uj.exResponsibilities : '',
-                    degree: ue.degree,
-                    institution: ue.institution,
-                    edugroup: ue.edugroup,
-                    eduStartDate: ue.eduStartDate,
-                    eduEndDate: ue.eduEndDate,
-                    eduStudying: ue.eduStudying,
+                    jobExperience: [{
+                        exJobTitle: uj.exJobTitle ? uj.exJobTitle : '',
+                        exCompany: uj.exCompany ? uj.exCompany : '',
+                        exStartDate: uj.exStartDate ? uj.exStartDate : '',
+                        exEndDate: uj.exEndDate ? uj.exEndDate : '',
+                        exWorking: uj.exWorking ? uj.exWorking : '',
+                        exResponsibilities: uj.exResponsibilities ? uj.exResponsibilities : '',
+                    }],
+                    education: [{
+                        degree: ue.degree,
+                        institution: ue.institution,
+                        edugroup: ue.edugroup,
+                        eduStartDate: ue.eduStartDate,
+                        eduEndDate: ue.eduEndDate,
+                        eduStudying: ue.eduStudying,
+                    }],
                     resume: ue.resume
                 }
             };
@@ -221,7 +272,6 @@ async function run() {
                 $set: user
             };
             const update = await employersCollection.updateOne(query, updateDoc, options);
-            console.log(update)
             res.send(update)
         });
         app.delete('/post/:id', async (req, res) => {
@@ -246,21 +296,16 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         });
-        app.get('/apply', async (req, res) => {
-            const query = {};
+        app.get('/apply-emp/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { employerEmail: email };
             const cursor = applyCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
         });
     }
-    finally {}
+    finally { }
 };
 run().catch(console.dir);
-
-
-// server test
-// app.get('/', (req, res) => {
-//     res.send('hello')
-// });
 
 app.listen(port, () => { })
