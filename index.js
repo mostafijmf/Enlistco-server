@@ -168,13 +168,6 @@ async function run() {
             res.send(userInfo);
         });
 
-        app.delete('/users/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await usersCollection.deleteOne(query);
-            res.send(result)
-        });
-
         // ---------Admin data--------- 
         app.get('/admin/:email', async (req, res) => {
             const email = req.params.email;
@@ -182,6 +175,17 @@ async function run() {
             const isAdmin = user?.admin === true;
             res.send({ admin: isAdmin })
         })
+
+        app.delete('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const query1 = { email: email };
+            const query2 = { employerEmail: email };
+            const query3 = { seekerEmail: email };
+            const userResult = await usersCollection.deleteOne(query1);
+            const epmResult = await employersCollection.deleteOne(query2);
+            const appResult = await applyCollection.deleteOne(query3);
+            res.send(userResult, epmResult, appResult)
+        });
 
 
         // ---------Seekers Data--------- 
