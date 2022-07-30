@@ -37,9 +37,7 @@ function verifyJWT(req, res, next) {
 };
 
 // -----------Email sender-----------
-function emailSender(user) {
-    const { resume, subject, coverLetter, seekerEmail, seekerName, postID, receiveEmail, jobTitle } = user;
-
+function emailSender(data, letter) {
     const smtpTransport = nodemailer.createTransport({
         host: "mail.smtp2go.com",
         port: 2525, // 8025, 587 and 25 can also be used.
@@ -48,13 +46,32 @@ function emailSender(user) {
             pass: process.env.SMTP_PASS
         }
     });
-    smtpTransport.sendMail({
-        from: process.env.SENDER_EMAIL,
-        to: receiveEmail,
-        subject: subject,
-        html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Job Portal</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://job-portal-online.web.app/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
-    }, function (error, response) {});
 
+    if (letter === 'coverLetter') {
+        const { resume, subject, coverLetter, seekerEmail, seekerName, postID, receiveEmail, jobTitle } = data;
+        smtpTransport.sendMail({
+            from: {
+                name: 'Job Portal',
+                address: process.env.SENDER_EMAIL
+            },
+            to: receiveEmail,
+            subject: subject,
+            html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Job Portal</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://job-portal-online.web.app/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
+        }, function (error, response) {});
+    }
+
+    if (letter === 'offerLetter') {
+        const { seekerEmail, seekerName, jobTitle, company, subject, offerLetter } = data;
+        smtpTransport.sendMail({
+            from: {
+                name: 'Job Portal',
+                address: process.env.SENDER_EMAIL
+            },
+            to: seekerEmail,
+            subject: subject,
+            html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Job Portal</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>Great news, You've received an offer letter.</h4><hr /><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi, ${seekerName}</p><p style='margin: 0; font-size: 19px;'>You've just received an offer letter from ${company} for the ${jobTitle} position.</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 19px;'>${offerLetter}</p></div></div></div>`
+        }, function (error, response) {});
+    };
 };
 
 
@@ -105,13 +122,13 @@ async function run() {
             const education = req.body;
             const filter = { _id: ObjectId(id) };
             const options = { upsert: true };
-            const updateDoc = { 
-                $push: { education: education } 
+            const updateDoc = {
+                $push: { education: education }
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(result);
         });
-        
+
         // Delete seeker education data
         app.patch('/delete-edu/:id', async (req, res) => {
             const id = req.params.id;
@@ -119,8 +136,8 @@ async function run() {
             const education = edu.edu;
             const filter = { _id: ObjectId(id) };
             const options = { multi: true };
-            const updateDoc = { 
-                $pull: { education: education } 
+            const updateDoc = {
+                $pull: { education: education }
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(result);
@@ -132,8 +149,8 @@ async function run() {
             const jobExperience = req.body;
             const filter = { _id: ObjectId(id) };
             const options = { upsert: true };
-            const updateDoc = { 
-                $push: { jobExperience: jobExperience } 
+            const updateDoc = {
+                $push: { jobExperience: jobExperience }
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(result);
@@ -146,8 +163,8 @@ async function run() {
             const jobExperience = ex.ex;
             const filter = { _id: ObjectId(id) };
             const options = { multi: true };
-            const updateDoc = { 
-                $pull: { jobExperience: jobExperience } 
+            const updateDoc = {
+                $pull: { jobExperience: jobExperience }
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(result);
@@ -287,10 +304,23 @@ async function run() {
 
         // ---------Seeker apply job--------- 
         app.post('/apply', async (req, res) => {
-            const user = req.body;
-            const result = await applyCollection.insertOne(user);
-            emailSender(user)
+            const data = req.body;
+            const result = await applyCollection.insertOne(data);
+            emailSender(data, 'coverLetter');
             res.send(result);
+        });
+
+        app.put('/apply/:id', async (req, res) => {
+            const id = req.params.id;
+            const data = req.body;
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: { offerLetter: true }
+            };
+            const result = await applyCollection.updateOne(query, updateDoc, options);
+            emailSender(data, 'offerLetter');
+            res.send(result)
         });
 
         app.get('/apply/:email', async (req, res) => {
