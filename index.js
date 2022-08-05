@@ -93,7 +93,7 @@ async function run() {
                 $set: user,
             };
             const update = await usersCollection.updateOne(filter, updateDoc, options);
-            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1y' })
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '5y' })
             res.send({ update, token });
         });
 
@@ -165,6 +165,19 @@ async function run() {
             const options = { multi: true };
             const updateDoc = {
                 $pull: { jobExperience: jobExperience }
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        });
+
+        // Upload resume
+        app.put('/user-resume/:id', async (req, res) => {
+            const id = req.params.id;
+            const resume = req.body;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: resume
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(result);
