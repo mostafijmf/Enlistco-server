@@ -252,7 +252,8 @@ async function run() {
                         eduEndDate: ue.eduEndDate,
                         eduStudying: ue.eduStudying,
                     }],
-                    resume: ue.resume
+                    resume: ue.resume,
+                    seekerAbout: ue.seekerAbout ? ue.seekerAbout : ''
                 }
             };
             const update = await usersCollection.updateOne(filter, updateDoc, options);
