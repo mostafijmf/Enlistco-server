@@ -4,7 +4,7 @@ require('dotenv').config();
 const app = express();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8800;
 const nodemailer = require('nodemailer');
 
 
@@ -56,7 +56,7 @@ function emailSender(data, letter) {
             },
             to: receiveEmail,
             subject: subject,
-            html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Enlistco</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://job-portal-online.web.app/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
+            html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Enlistco</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://enlistco.co.in/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
         }, function (error, response) {});
     }
 
