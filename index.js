@@ -15,7 +15,7 @@ app.use(express.json());
 
 
 // -------MongoDB------
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3acffrh.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gmbn38d.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
@@ -375,4 +375,10 @@ async function run() {
 };
 run().catch(console.dir);
 
-app.listen(port, () => { })
+app.get('/', async (req, res) =>{
+    res.send('Server is running successfully!')
+});
+
+app.listen(port, () => { 
+    console.log("Backend server is running!")
+})
