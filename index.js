@@ -75,7 +75,6 @@ function emailSender(data, letter) {
 };
 
 
-
 async function run() {
     try {
         await client.connect();
@@ -109,7 +108,8 @@ async function run() {
                     address: user.address,
                     state: user.state,
                     country: user.country,
-                    zip: user.zip
+                    zip: user.zip,
+                    seekerAbout: user.seekerAbout
                 }
             };
             const update = await usersCollection.updateOne(filter, updateDoc, options);
@@ -266,6 +266,7 @@ async function run() {
             const po = user.postOptions;
             const ec = user.employerContact;
             const jobData = {
+                permission: false,
                 jobTitle: ec.jobTitle ? ec.jobTitle : '',
                 company: ec.company ? ec.company : '',
                 workplace: ec.workplace ? ec.workplace : '',
@@ -273,6 +274,7 @@ async function run() {
                 empQuantity: ec.empQuantity ? ec.empQuantity : '',
                 empType: ec.empType ? ec.empType : '',
                 jobDescription: user.jobDescription ? user.jobDescription : '',
+                terms: user.terms ? user.terms : '',
                 employerEmail: user.email ? user.email : '',
                 receiveEmail: po.receiveEmail ? po.receiveEmail : '',
                 salary: po.salary ? po.salary : '',
