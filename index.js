@@ -4,7 +4,7 @@ require('dotenv').config();
 const app = express();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8800;
 const nodemailer = require('nodemailer');
 
 
@@ -15,7 +15,7 @@ app.use(express.json());
 
 
 // -------MongoDB------
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3acffrh.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gmbn38d.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
@@ -75,7 +75,6 @@ function emailSender(data, letter) {
 };
 
 
-
 async function run() {
     try {
         await client.connect();
@@ -109,7 +108,8 @@ async function run() {
                     address: user.address,
                     state: user.state,
                     country: user.country,
-                    zip: user.zip
+                    zip: user.zip,
+                    seekerAbout: user.seekerAbout
                 }
             };
             const update = await usersCollection.updateOne(filter, updateDoc, options);
@@ -266,6 +266,7 @@ async function run() {
             const po = user.postOptions;
             const ec = user.employerContact;
             const jobData = {
+                permission: false,
                 jobTitle: ec.jobTitle ? ec.jobTitle : '',
                 company: ec.company ? ec.company : '',
                 workplace: ec.workplace ? ec.workplace : '',
@@ -273,6 +274,7 @@ async function run() {
                 empQuantity: ec.empQuantity ? ec.empQuantity : '',
                 empType: ec.empType ? ec.empType : '',
                 jobDescription: user.jobDescription ? user.jobDescription : '',
+                terms: user.terms ? user.terms : '',
                 employerEmail: user.email ? user.email : '',
                 receiveEmail: po.receiveEmail ? po.receiveEmail : '',
                 salary: po.salary ? po.salary : '',
@@ -375,4 +377,10 @@ async function run() {
 };
 run().catch(console.dir);
 
-app.listen(port, () => { })
+app.get('/', async (req, res) =>{
+    res.send('Server is running successfully!')
+});
+
+app.listen(port, () => { 
+    console.log("Backend server is running!")
+})
