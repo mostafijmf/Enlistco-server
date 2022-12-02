@@ -172,7 +172,7 @@ async function run() {
         });
 
         // ========================Admin route========================
-        app.get('/admin', accessAuth, async (req, res) => {
+        app.get('/admin', accessAuth(usersCollection), async (req, res) => {
             try {
                 const user = await usersCollection.findOne({ email: req.decoded.email });
                 const isAdmin = user.admin === true;
@@ -186,7 +186,7 @@ async function run() {
             }
         });
 
-        app.get('/users', accessAuth, async (req, res) => {
+        app.get('/users', accessAuth(usersCollection), async (req, res) => {
             try {
                 const query = {};
                 const cursor = usersCollection.find(query);
@@ -197,22 +197,24 @@ async function run() {
             }
         });
 
-        app.delete('/admin_delete/:email', accessAuth, async (req, res) => {
+        app.delete('/admin_delete/:email', accessAuth(usersCollection), async (req, res) => {
             try {
                 const email = req.params.email;
                 const query1 = { email: email };
                 const query2 = { employerEmail: email };
                 const query3 = { seekerEmail: email };
                 const userResult = await usersCollection.deleteOne(query1);
-                const epmResult = await jobPostCollection.deleteOne(query2);
-                const appResult = await applyJobCollection.deleteOne(query3);
-                res.send(userResult, epmResult, appResult)
+                const epmResult = await jobPostCollection.deleteMany(query2);
+                const appResult1 = await applyJobCollection.deleteMany(query3);
+                const appResult2 = await applyJobCollection.deleteMany(query2);
+                const notifResult = await notificationCollection.deleteMany(query2);
+                res.send(userResult, epmResult, appResult1, appResult2, notifResult)
             } catch (error) {
                 if (error) return res.status(500).send({ message: error.message });
             }
         });
 
-        app.put('/payment_required/:id', accessAuth, async (req, res) => {
+        app.put('/payment_required/:id', accessAuth(usersCollection), async (req, res) => {
             try {
                 const id = req.params.id;
                 const filter = { _id: ObjectId(id) };
@@ -229,7 +231,7 @@ async function run() {
         });
 
         // ========================Users data========================
-        app.get('/users/get_single_user', accessAuth, async (req, res) => {
+        app.get('/users/get_single_user', accessAuth(usersCollection), async (req, res) => {
             try {
                 const email = { email: req.decoded.email };
 
@@ -240,28 +242,39 @@ async function run() {
             }
         });
 
-        app.put('/users/newEntry', accessAuth, async (req, res) => {
+        app.put('/users/newEntry', accessAuth(usersCollection), async (req, res) => {
             try {
+                const user = req.body;
                 const filter = { email: req.decoded.email };
                 const options = { upsert: true };
-                const admin = req.body.admin;
-                const seeker = req.body.seeker;
-                const employer = req.body.employer;
-                const newEntry = req.body.newEntry;
-                const updateDoc = employer ? {
+                const updateDoc = user.employer ? {
                     $set: {
-                        admin: admin,
-                        seeker: seeker,
-                        employer: employer,
-                        newEntry: newEntry,
+                        admin: user.admin,
+                        seeker: user.seeker,
+                        employer: user.employer,
+                        newEntry: user.newEntry,
                         subscription: 'free',
+                        firstName: user.userInfo.firstName,
+                        lastName: user.userInfo.lastName,
+                        phone: user.userInfo.phone,
+                        country: user.userInfo.country,
+                        address: user.userInfo.address,
+                        state: user.userInfo.state,
+                        zip: user.userInfo.zip,
                     }
                 } : {
                     $set: {
-                        admin: admin,
-                        seeker: seeker,
-                        employer: employer,
-                        newEntry: newEntry
+                        admin: user.admin,
+                        seeker: user.seeker,
+                        employer: user.employer,
+                        newEntry: user.newEntry,
+                        firstName: user.userInfo.firstName,
+                        lastName: user.userInfo.lastName,
+                        phone: user.userInfo.phone,
+                        country: user.userInfo.country,
+                        address: user.userInfo.address,
+                        state: user.userInfo.state,
+                        zip: user.userInfo.zip,
                     }
                 };
                 const result = await usersCollection.updateOne(filter, updateDoc, options);
@@ -271,7 +284,7 @@ async function run() {
             }
         });
 
-        app.put('/employer_data/update', accessAuth, async (req, res) => {
+        app.put('/employer_data/update', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { upsert: true };
@@ -299,13 +312,14 @@ async function run() {
         });
 
         // ========================Seeker data========================
-        app.put('/seeker_data', accessAuth, async (req, res) => {
+        app.put('/seeker_data', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { upsert: true };
 
                 const user = req.body;
                 const uc = user.userContact ? user.userContact : '';
+                const us = user.seekerAbout ? user.seekerAbout : '';
                 const uj = user.jobExp ? user.jobExp : '';
                 const ue = user.education;
                 const updateDoc = {
@@ -317,6 +331,8 @@ async function run() {
                         address: uc.address ? uc.address : '',
                         state: uc.state ? uc.state : '',
                         zip: uc.zip ? uc.zip : '',
+                        seekerAbout: us.seekerAbout ? us.seekerAbout : '',
+                        seekerTitle: us.seekerTitle ? us.seekerTitle : '',
                         jobExperience: [{
                             exJobTitle: uj.exJobTitle ? uj.exJobTitle : '',
                             exCompany: uj.exCompany ? uj.exCompany : '',
@@ -333,8 +349,7 @@ async function run() {
                             eduEndDate: ue.eduEndDate,
                             eduStudying: ue.eduStudying,
                         }],
-                        resume: ue.resume,
-                        seekerAbout: ue.seekerAbout ? ue.seekerAbout : ''
+                        resume: user.resume,
                     }
                 };
                 const update = await usersCollection.updateOne(filter, updateDoc, options);
@@ -344,7 +359,7 @@ async function run() {
             }
         });
 
-        app.put('/seeker_data/update', accessAuth, async (req, res) => {
+        app.put('/seeker_data/update', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { upsert: true };
@@ -359,7 +374,7 @@ async function run() {
             }
         });
 
-        app.put('/seeker/add-education', accessAuth, async (req, res) => {
+        app.put('/seeker/add-education', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { upsert: true };
@@ -374,7 +389,7 @@ async function run() {
             }
         });
 
-        app.patch('/seeker/delete-education', accessAuth, async (req, res) => {
+        app.patch('/seeker/delete-education', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { multi: true };
@@ -390,7 +405,7 @@ async function run() {
             }
         });
 
-        app.put('/seeker/add-jobExperience', accessAuth, async (req, res) => {
+        app.put('/seeker/add-jobExperience', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { upsert: true };
@@ -405,7 +420,7 @@ async function run() {
             }
         });
 
-        app.patch('/seeker/delete-jobExperience', accessAuth, async (req, res) => {
+        app.patch('/seeker/delete-jobExperience', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { multi: true };
@@ -421,7 +436,7 @@ async function run() {
             }
         });
 
-        app.put('/seeker/update-resume', accessAuth, async (req, res) => {
+        app.put('/seeker/update-resume', accessAuth(usersCollection), async (req, res) => {
             try {
                 const filter = { email: req.decoded.email };
                 const options = { upsert: true };
@@ -438,36 +453,44 @@ async function run() {
 
 
         // ========================Job post========================
-        app.post('/post', accessAuth, async (req, res) => {
+        app.post('/post', accessAuth(usersCollection), async (req, res) => {
             try {
                 const user = req.body;
-                const po = user.postOptions;
-                const ec = user.employerContact;
+                const jc = user.jobContact;
+                const appOpt = user.appOptions;
                 const jobData = {
                     permission: false,
-                    jobTitle: ec.jobTitle ? ec.jobTitle : '',
-                    company: ec.company ? ec.company : '',
-                    workplace: ec.workplace ? ec.workplace : '',
-                    jobLocation: ec.jobLocation ? ec.jobLocation : '',
-                    empQuantity: ec.empQuantity ? ec.empQuantity : '',
-                    empType: ec.empType ? ec.empType : '',
+
+                    // jobContact
+                    jobTitle: jc.jobTitle ? jc.jobTitle : '',
+                    company: jc.company ? jc.company : '',
+                    workplace: jc.workplace ? jc.workplace : '',
+                    jobLocation: jc.jobLocation ? jc.jobLocation : '',
+                    empQuantity: jc.empQuantity ? jc.empQuantity : '',
+                    empType: jc.empType ? jc.empType : '',
+
                     jobDescription: user.jobDescription ? user.jobDescription : '',
                     terms: user.terms ? user.terms : '',
-                    employerEmail: user.email ? user.email : '',
-                    receiveEmail: po.receiveEmail ? po.receiveEmail : '',
-                    salary: po.salary ? po.salary : '',
-                    skillTags: po.skillTags ? po.skillTags : '',
-                    bgCheck: user.bgCheck ? user.bgCheck : '',
-                    certification: user.certification ? user.certification : '',
-                    drivingLicense: user.drivingLicense ? user.drivingLicense : '',
-                    drugTest: user.drugTest ? user.drugTest : '',
-                    education: user.education ? user.education : '',
-                    gpa: user.gpa ? user.gpa : '',
-                    hybridWork: user.hybridWork ? user.hybridWork : '',
-                    remoteWork: user.remoteWork ? user.remoteWork : '',
-                    workExperience: user.workExperience ? user.workExperience : '',
-                    urgentHiring: user.urgentHiring ? user.urgentHiring : '',
-                    customQuestion: user.customQuestion ? user.customQuestion : ''
+
+                    // appOptions
+                    employerEmail: appOpt.email ? appOpt.email : '',
+                    receiveEmail: appOpt.receiveEmail ? appOpt.receiveEmail : '',
+                    applyType: appOpt.applyType ? appOpt.applyType : '',
+                    salary: appOpt.salary ? appOpt.salary : '',
+                    skillTags: appOpt.skillTags ? appOpt.skillTags : '',
+                    bgCheck: appOpt.bgCheck ? appOpt.bgCheck : '',
+                    certification: appOpt.certification ? appOpt.certification : '',
+                    drivingLicense: appOpt.drivingLicense ? appOpt.drivingLicense : '',
+                    drugTest: appOpt.drugTest ? appOpt.drugTest : '',
+                    education: appOpt.education ? appOpt.education : '',
+                    gpa: appOpt.gpa ? appOpt.gpa : '',
+                    hybridWork: appOpt.hybridWork ? appOpt.hybridWork : '',
+                    remoteWork: appOpt.remoteWork ? appOpt.remoteWork : '',
+                    workExperience: appOpt.workExperience ? appOpt.workExperience : '',
+                    urgentHiring: appOpt.urgentHiring ? appOpt.urgentHiring : '',
+                    customQuestion: appOpt.customQuestion ? appOpt.customQuestion : '',
+
+                    jobStatus: 'Open'
                 };
                 const result = await jobPostCollection.insertOne(jobData);
 
@@ -475,8 +498,9 @@ async function run() {
                 // For Notification
                 const notification = {
                     postId: result.insertedId,
-                    jobTitle: ec.jobTitle ? ec.jobTitle : '',
-                    company: ec.company ? ec.company : '',
+                    jobTitle: jc.jobTitle ? jc.jobTitle : '',
+                    company: jc.company ? jc.company : '',
+                    employerEmail: appOpt.email ? appOpt.email : '',
                     notifyAdmin: true,
                     permission: false,
                     notifyUsers: []
@@ -500,7 +524,7 @@ async function run() {
             }
         });
 
-        app.get('/post/get_single_post', accessAuth, async (req, res) => {
+        app.get('/post/get_single_post', accessAuth(usersCollection), async (req, res) => {
             try {
                 const query = { employerEmail: req.decoded.email };
                 const cursor = jobPostCollection.find(query);
@@ -511,54 +535,99 @@ async function run() {
             }
         });
 
-        app.put('/post/:id', accessAuth, async (req, res) => {
+        app.get('/post/get_single_post/:id', accessAuth(usersCollection), async (req, res) => {
             try {
-                // Find user
-                const email = { email: req.body.employerEmail };
-                const findData = await usersCollection.findOne(email);
-
-                // Update post
                 const id = req.params.id;
-                const user = req.body;
-                const options = { upsert: true };
-                const query1 = { _id: ObjectId(id) };
-                const updatePost = {
-                    $set: {
-                        permission: user.permission,
-                        publish: user.publish,
-                        postType: findData.subscription === 'per_post' || findData.subscription === 'paid' ? 'paid' : 'free'
-                    }
-                };
-                const postResult = await jobPostCollection.updateOne(query1, updatePost, options);
-
-                // For Subscription
-                if (findData.subscription === 'per_post') {
-                    const filter = { _id: ObjectId(findData._id) };
-                    const options = { upsert: true };
-                    const updateDoc = {
-                        $set: {
-                            subscription: 'required'
-                        }
-                    };
-                    await usersCollection.updateOne(filter, updateDoc, options);
-                };
-
-                // For notification
-                const query2 = { postId: ObjectId(id) };
-                const updateNotify = {
-                    $set: {
-                        permission: true
-                    }
-                };
-                const notifyResult = await notificationCollection.updateOne(query2, updateNotify, options);
-
-                res.send({ postResult, notifyResult })
+                const query = { _id: ObjectId(id) };
+                const cursor = await jobPostCollection.findOne(query);
+                res.send(cursor);
             } catch (error) {
                 if (error) return res.status(500).send({ message: error.message });
             }
         });
 
-        app.delete('/post/:id', accessAuth, async (req, res) => {
+        app.put('/post/permission/:id', accessAuth(usersCollection), async (req, res) => {
+            try {
+                const email = { email: req.body.employerEmail };
+                const id = req.params.id;
+                const user = req.body;
+                const options = { upsert: true };
+                const query1 = { _id: ObjectId(id) };
+
+                // Permission Edited post
+                if (req.query.isEdited) {
+                    const updatePost = {
+                        $set: {
+                            permission: user.permission,
+                            postEdited: false,
+                        }
+                    };
+                    const postResult = await jobPostCollection.updateOne(query1, updatePost, options);
+                    res.send({ postResult });
+                }
+                else {
+                    // Find user
+                    const findData = await usersCollection.findOne(email);
+
+                    // For Subscription
+                    if (findData.subscription === 'per_post') {
+                        const filter = { _id: ObjectId(findData._id) };
+                        const updateDoc = {
+                            $set: {
+                                subscription: 'required'
+                            }
+                        };
+                        await usersCollection.updateOne(filter, updateDoc, options);
+                    };
+
+                    // For notification
+                    const query2 = { postId: ObjectId(id) };
+                    const updateNotify = {
+                        $set: {
+                            permission: true
+                        }
+                    };
+                    const notifyResult = await notificationCollection.updateOne(query2, updateNotify, options);
+
+                    // Update post
+                    const updatePost = {
+                        $set: {
+                            permission: user.permission,
+                            publish: user.publish,
+                            postType: findData.subscription === 'per_post' || findData.subscription === 'paid' ? 'paid' : 'free'
+                        }
+                    };
+                    const postResult = await jobPostCollection.updateOne(query1, updatePost, options);
+
+                    // Job Alert
+                    const query = { seeker: true };
+                    const jobPost = await jobPostCollection.findOne(query1);
+                    const find = await usersCollection.find(query).toArray();
+
+                    const matchTitle = find.filter(f =>
+                        f.seekerTitle.toLocaleLowerCase()
+                        ===
+                        jobPost.jobTitle.toLocaleLowerCase()
+                    );
+
+                    const findEmail = matchTitle.map(f => f.email);
+
+                    emailSender({
+                        jobPost,
+                        publish: user.publish,
+                        findEmail,
+                        seekerTitle: matchTitle[0].seekerTitle
+                    }, 'jobAlert');
+
+                    res.send({ postResult, notifyResult });
+                };
+
+            } catch (error) {
+                if (error) return res.status(500).send({ message: error.message });
+            }
+        });
+
+        app.delete('/post/:id', accessAuth(usersCollection), async (req, res) => {
             try {
                 const id = req.params.id;
                 const query1 = { _id: ObjectId(id) };
@@ -573,44 +642,152 @@ async function run() {
             }
         });
 
-        app.put('/update-post-info/:id', accessAuth, async (req, res) => {
+        app.put('/update_post/:id', accessAuth(usersCollection), async (req, res) => {
             try {
                 const id = req.params.id;
                 const data = req.body;
+                const query1 = { _id: ObjectId(id) };
+                const query2 = { postId: ObjectId(id) };
+                const options = { upsert: true };
+
+                if (req.query.postInfo) {
+                    const updatePost = {
+                        $set: {
+                            jobTitle: data.jobTitle,
+                            company: data.company,
+                            workplace: data.workplace,
+                            jobLocation: data.jobLocation,
+                            empQuantity: data.empQuantity,
+                            empType: data.empType,
+                            salary: data.salary,
+                            permission: data.permission,
+                            postEdited: true
+                        }
+                    };
+                    const result = await jobPostCollection.updateOne(query1, updatePost, options);
+
+                    // For Notification
+                    const notification = {
+                        $set: {
+                            notifyAdmin: true,
+                            postEdited: true
+                        }
+                    };
+                    await notificationCollection.updateOne(query2, notification, options);
+
+                    res.send(result)
+                }
+                else if (req.query.description) {
+                    const updatePost = {
+                        $set: {
+                            jobDescription: data.jobDescription,
+                            permission: data.permission,
+                            postEdited: true
+                        }
+                    };
+                    const result = await jobPostCollection.updateOne(query1, updatePost, options);
+
+                    // For Notification
+                    const notification = {
+                        $set: {
+                            notifyAdmin: true,
+                            postEdited: true
+                        }
+                    };
+                    await notificationCollection.updateOne(query2, notification, options);
+
+                    res.send(result);
+                }
+                else if (req.query.applicationOpts) {
+                    const updatePost = {
+                        $set: {
+                            applyType: data.applyType,
+                            receiveEmail: data.receiveEmail,
+                            skillTags: data.skillTags,
+                            permission: data.permission,
+                            postEdited: true
+                        }
+                    };
+                    const result = await jobPostCollection.updateOne(query1, updatePost, options);
+
+                    // For Notification
+                    const notification = {
+                        $set: {
+                            notifyAdmin: true,
+                            postEdited: true
+                        }
+                    };
+                    await notificationCollection.updateOne(query2, notification, options);
+
+                    res.send(result);
+                }
+                else if (req.query.terms) {
+                    const updatePost = {
+                        $set: {
+                            terms: data.terms,
+                            permission: data.permission,
+                            postEdited: true
+                        }
+                    };
+                    const result = await jobPostCollection.updateOne(query1, updatePost, options);
+
+                    // For Notification
+                    const notification = {
+                        $set: {
+                            notifyAdmin: true,
+                            postEdited: true
+                        }
+                    };
+                    await notificationCollection.updateOne(query2, notification, options);
+
+                    res.send(result);
+                }
+                else if (req.query.addQuestions) {
+                    const updatePost = {
+                        $set: {
+                            bgCheck: data.bgCheck,
+                            certification: data.certification,
+                            drivingLicense: data.drivingLicense,
+                            drugTest: data.drugTest,
+                            education: data.education,
+                            gpa: data.gpa,
+                            hybridWork: data.hybridWork,
+                            remoteWork: data.remoteWork,
+                            workExperience: data.workExperience,
+                            urgentHiring: data.urgentHiring,
+                            customQuestion: data.customQuestion,
+                            permission: data.permission,
+                            postEdited: true
+                        }
+                    };
+                    const result = await jobPostCollection.updateOne(query1, updatePost, options);
+
+                    // For Notification
+                    const notification = {
+                        $set: {
+                            notifyAdmin: true,
+                            postEdited: true
+                        }
+                    };
+                    await notificationCollection.updateOne(query2, notification, options);
+
+                    res.send(result);
+                }
+
+            } catch (error) {
+                if (error) return res.status(500).send({ message: error.message });
+            }
+        });
+
+        app.put('/job_status/:id', accessAuth(usersCollection), async (req, res) => {
+            try {
+                const id = req.params.id;
+                const { jobStatus } = req.body;
                 const options = { upsert: true };
                 const query1 = { _id: ObjectId(id) };
                 const updatePost = {
                     $set: {
-                        jobTitle: data.jobTitle,
-                        company: data.company,
-                        workplace: data.workplace,
-                        jobLocation: data.jobLocation,
-                        empQuantity: data.empQuantity,
-                        empType: data.empType,
-                        salary: data.salary,
-                        receiveEmail: data.receiveEmail,
-                    }
-                };
-                const result = await jobPostCollection.updateOne(query1, updatePost, options);
-                res.send(result)
-            } catch (error) {
-                if (error) return res.status(500).send({ message: error.message });
-            }
-        });
-
-        app.put('/update-des-and-terms/:id', accessAuth, async (req, res) => {
-            try {
-                const id = req.params.id;
-                const data = req.body;
-                const options = { upsert: true };
-                const query1 = { _id: ObjectId(id) };
-                const updatePost = data.jobDescription && {
-                    $set: {
-                        jobDescription: data.jobDescription,
-                    }
-                } || data.terms && {
-                    $set: {
-                        terms: data.terms,
+                        jobStatus
                     }
                 };
                 const result = await jobPostCollection.updateOne(query1, updatePost, options);
@@ -619,55 +796,9 @@ async function run() {
                 if (error) return res.status(500).send({ message: error.message });
             }
         });
-
-        // ========================Notifications========================
-        app.get('/notifications', accessAuth, async (req, res) => {
-            try {
-                const query = {};
-                const cursor = notificationCollection.find(query);
-                const allPost = await cursor.toArray();
-                res.send(allPost);
-            } catch (error) {
-                if (error) return res.status(500).send({ message: error.message });
-            }
-        });
-
-        app.put('/admin_seen_notification/:id', accessAuth, async (req, res) => {
-            try {
-                const id = req.params.id;
-                const data = req.body;
-
-                const query = { _id: ObjectId(id) };
-                const options = { upsert: true };
-                const updateDoc = {
-                    $set: data
-                };
-                const result = await notificationCollection.updateOne(query, updateDoc, options);
-                res.send(result);
-            } catch (error) {
-                if (error) return res.status(500).send({ message: error.message });
-            }
-        });
-
-        app.put('/seeker_seen_notification/:id', accessAuth, async (req, res) => {
-            try {
-                const id = req.params.id;
-                const seekerId = req.body.seekerId;
-                const query = { _id: ObjectId(id) };
-                const options = { upsert: true };
-                const updateDoc = {
-                    $push: { notifyUsers: seekerId }
-                };
-                const result = await notificationCollection.updateOne(query, updateDoc, options);
-                res.send(result);
-            } catch (error) {
-                if (error) return res.status(500).send({ message: error.message });
-            }
-        });
-
 
         // ========================Seeker apply job========================
-        app.post('/apply', accessAuth, async (req, res) => {
+        app.post('/apply', accessAuth(usersCollection), async (req, res) => {
             try {
                 const data = req.body;
                 const result = await applyJobCollection.insertOne(data);
@@ -678,7 +809,7 @@ async function run() {
             }
         });
 
-        app.put('/apply/offer_letter_send/:id', accessAuth, async (req, res) => {
+        app.put('/apply/offer_letter_send/:id', accessAuth(usersCollection), async (req, res) => {
             try {
                 const id = req.params.id;
                 const data = req.body;
@@ -695,7 +826,7 @@ async function run() {
             }
         });
 
-        app.get('/apply/get_single_apply', accessAuth, async (req, res) => {
+        app.get('/apply/get_single_apply', accessAuth(usersCollection), async (req, res) => {
             try {
                 const query = { seekerEmail: req.decoded.email };
                 const cursor = applyJobCollection.find(query);
@@ -706,18 +837,26 @@ async function run() {
             }
         });
 
-        app.get('/apply/seeker_applications', accessAuth, async (req, res) => {
+        app.get('/apply/seeker_applications', accessAuth(usersCollection), async (req, res) => {
             try {
-                const query = { employerEmail: req.decoded.email };
-                const cursor = applyJobCollection.find(query);
-                const result = await cursor.toArray();
-                res.send(result);
+                if (req.query.id) {
+                    const query = { postID: req.query.id };
+                    const cursor = applyJobCollection.find(query);
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
+                else {
+                    const query = { employerEmail: req.decoded.email };
+                    const cursor = applyJobCollection.find(query);
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
             } catch (error) {
                 if (error) return res.status(500).send({ message: error.message });
             }
         });
 
-        app.get('/admin-applied-list/:id', accessAuth, async (req, res) => {
+        app.get('/admin-applied-list/:id', accessAuth(usersCollection), async (req, res) => {
             try {
                 const id = req.params.id;
                 const query = { postID: id };
@@ -730,8 +869,55 @@ async function run() {
         });
 
 
+        // ========================Notifications========================
+        app.get('/notifications', accessAuth(usersCollection), async (req, res) => {
+            try {
+                const query = {};
+                const cursor = notificationCollection.find(query);
+                const allPost = await cursor.toArray();
+                res.send(allPost);
+            } catch (error) {
+                if (error) return res.status(500).send({ message: error.message });
+            }
+        });
+
+        app.put('/admin_seen_notification/:id', accessAuth(usersCollection), async (req, res) => {
+            try {
+                const id = req.params.id;
+                const data = req.body;
+
+                const query = { _id: ObjectId(id) };
+                const options = { upsert: true };
+                const updateDoc = {
+                    $set: data
+                };
+                const result = await notificationCollection.updateOne(query, updateDoc, options);
+                res.send(result);
+            } catch (error) {
+                if (error) return res.status(500).send({ message: error.message });
+            }
+        });
+
+        app.put('/seeker_seen_notification/:id', accessAuth(usersCollection), async (req, res) => {
+            try {
+                const id = req.params.id;
+                const seekerId = req.body.seekerId;
+                const query = { _id: ObjectId(id) };
+                const options = { upsert: true };
+                const updateDoc = {
+                    $push: { notifyUsers: seekerId }
+                };
+                const result = await notificationCollection.updateOne(query, updateDoc, options);
+                res.send(result);
+            } catch (error) {
+                if (error) return res.status(500).send({ message: error.message });
+            }
+        });
+
+
+
         // ========================Payments========================
-        app.post('/create-payment-intent', accessAuth, async (req, res) => {
+        app.post('/create-payment-intent', accessAuth(usersCollection), async (req, res) => {
             try {
                 const { amount } = req.body;
                 const paymentIntent = await stripe.paymentIntents.create({
@@ -744,7 +930,7 @@ async function run() {
                 if (error) return res.status(500).send({ message: error.message });
             }
         });
-        app.post('/payment-complete', accessAuth, async (req, res) => {
+        app.post('/payment-complete', accessAuth(usersCollection), async (req, res) => {
             try {
                 const data = req.body;
                 const result = await paymentsCollection.insertOne(data);
@@ -763,7 +949,7 @@ async function run() {
                 if (error) return res.status(500).send({ message: error.message });
             }
         });
-        app.get('/payment-complete', accessAuth, async (req, res) => {
+        app.get('/payment-complete', accessAuth(usersCollection), async (req, res) => {
             try {
                 const query = {};
                 const data = paymentsCollection.find(query);
@@ -774,6 +960,18 @@ async function run() {
             }
         });
 
+
+
+        // ========================Contact Us========================
+        app.post('/contact_us', async (req, res) => {
+            try {
+                const data = req.body;
+                emailSender(data, 'contact_us')
+                res.status(200).send({ success: true });
+            } catch (error) {
+                if (error) return res.status(500).send({ message: error.message });
+            }
+        });
 
     }
     finally { }

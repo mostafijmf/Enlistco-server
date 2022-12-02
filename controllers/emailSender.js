@@ -11,6 +11,54 @@ const emailSender = (data, text) => {
         }
     });
 
+    // ================Job Alert================
+    if (text === 'jobAlert') {
+        const { jobPost, publish, findEmail, seekerTitle } = data;
+        const email = findEmail.join(', ');
+
+        smtpTransport.sendMail({
+            from: {
+                name: 'Enlistco',
+                address: process.env.SENDER_EMAIL
+            },
+            to: email,
+            subject: `A new job for “${jobPost.jobTitle}”`,
+            html: `<div
+            style='background-color: #f3f9ff; padding: 40px 0; font-family: Arial, Helvetica, sans-serif;'>
+            <div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'>
+                <h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>
+                    <a href=${process.env.CLIENT_URL} style="text-decoration: none; color: #1abc9c;">Enlistco</a>
+                </h2>
+                <h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400; margin-bottom: 1rem;'>
+                    Your job alert for ${seekerTitle}
+                </h4>
+                <hr />
+                <div style='padding: 20px 0;'>
+                    <h4 style='margin: 0;'>
+                        <a href=${`${process.env.CLIENT_URL}/job/${jobPost._id}`} style='text-decoration: none; color: #1abc9c; font-size: 20px; font-weight: 400; margin-bottom: 5px; margin-top: 0; display: block;' >
+                            ${jobPost.jobTitle}
+                        </a>
+                    </h4>
+                    <p style='margin: 5px 0 0 0; font-size: 14px; color: #555555; font-weight: 400;'>
+                        ${jobPost.company},<span style="margin-left: 5px;">${jobPost.jobLocation}</span><span style="margin-left: 5px;">(${jobPost.workplace})</span>
+                    </p>
+                    <p style='margin: 5px 0 5px 0px; font-size: 14px; color: #555555; font-weight: 400;'>
+                        $${jobPost.salary}
+                    </p>
+                    <p style='margin: 0; color: #555555; font-weight: 400;'>
+                        Posted in ${publish}
+                    </p>
+                </div>
+                <div style='width: 100%; text-align: start; margin-top: 20px; margin-bottom: 30px;'>
+                    <a href=${`${process.env.CLIENT_URL}/job/${jobPost._id}`}
+                        style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 16px;'>
+                        See Job
+                    </a>
+                </div>
+            </div>
+        </div>`
+        }, function (error, response) { });
+    };
 
     // ================Verification email send================
     if (text === 'verify') {
@@ -111,7 +159,7 @@ const emailSender = (data, text) => {
             },
             to: receiveEmail,
             subject: subject,
-            html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Enlistco</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://enlistco.co.in/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
+            html: `<div style='background-color: #f3f9ff; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Enlistco</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>You've received a cover letter from ${seekerName}</h4><hr/><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi,</p><p style='margin: 0; font-size: 19px;'>${seekerName} wrote a cover letter to you in regards to ${jobTitle}</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 18px;'>${coverLetter}</p></div><div style='width: 100%; text-align: center; margin-top: 20px;'><a href=${resume} style='padding: 8px 15px; border-radius: 5px; background-color: #1abc9c; text-decoration: none; color: white; font-size: 20px;'>See Resume</a></div><div style='width: 100%; text-align: center; margin-top: 30px;'><a href=${'https://enlistco.co.in/dashboard/seeker-applications'} style='padding: 8px 15px; border-radius: 5px; font-size: 20px;'>See seeker list</a></div></div></div>`
         }, function (error, response) { });
     }
 
@@ -125,7 +173,26 @@ const emailSender = (data, text) => {
             },
             to: seekerEmail,
             subject: subject,
-            html: `<div style='background-color: #d9e7f5; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Enlistco</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>Great news, You've received an offer letter.</h4><hr /><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi, ${seekerName}</p><p style='margin: 0; font-size: 19px;'>You've just received an offer letter from ${company} for the ${jobTitle} position.</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 19px;'>${offerLetter}</p></div></div></div>`
+            html: `<div style='background-color: #f3f9ff; padding: 40px 0;'><div style='width: 500px; margin: 0 auto; border-radius: 8px; background-color: white; padding: 30px;'><h2 style='text-align: center; margin: 0; font-size: 24px; color: #444;'>Enlistco</h2><h4 style='text-align: center; font-size: 20px; color: #444; font-weight: 400;'>Great news, You've received an offer letter.</h4><hr /><div style='padding: 20px 0; color: #1abc9c;'><p style='margin: 0; font-size: 19px;'>Hi, ${seekerName}</p><p style='margin: 0; font-size: 19px;'>You've just received an offer letter from ${company} for the ${jobTitle} position.</p></div><div style='background-color: #F1F5F9; padding: 20px; border-radius: 8px;'><p style='margin: 0; color: #7b7b7b; font-size: 19px;'>${offerLetter}</p></div></div></div>`
+        }, function (error, response) { });
+    };
+
+    // ================Contact Us================
+    if (text === 'contact_us') {
+        const { name, email, phone, message } = data;
+        smtpTransport.sendMail({
+            from: {
+                name: 'Enlistco',
+                address: email
+            },
+            to: process.env.SENDER_EMAIL,
+            subject: `A new message from Contact-us page written by ${name}`,
+            html: `<div>
+            <p>${message}</p>
+            <p style="margin: 0;">${name}</p>
+            <p style="margin: 0;">${phone}</p>
+            <p style="margin: 0;">${email}</p>
+            </div>`
         }, function (error, response) { });
     };
 };
